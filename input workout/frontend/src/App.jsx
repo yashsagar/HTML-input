@@ -1,13 +1,83 @@
 import { useRef } from "react";
 import { useState } from "react";
+import * as Yup from "yup";
 
 function App() {
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
+
+  const formSchem = Yup.object({
+    username: Yup.string()
+      .required("Name is required")
+      .min(3, "Name must be at least 3 characters"),
+    password: Yup.string()
+      .required("Password is required")
+      .matches(
+        /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/,
+        "Password must be complex"
+      ),
+    avatar: Yup.mixed()
+      .required("Image is required")
+      .test(
+        "file-format",
+        "Only JPG and PNG photos allowed",
+        (value) => value && ["image/jpg", "image/png"].includes(value.type)
+      ),
+    gender: Yup.string()
+      .required("Gender is required")
+      .oneOf(["male", "female"], "Invalid gender data"),
+    course: Yup.mixed().test(
+      "is-array-or-string",
+      "Course must be a string or an array of strings",
+      (value) => {
+        if (Array.isArray(value)) {
+          return (
+            value.length > 0 &&
+            value.every(
+              (item) => typeof item === "string" && item.trim() !== ""
+            )
+          );
+        }
+        return typeof value === "string" && value.trim() !== "";
+      }
+    ),
+    designation: Yup.string().required("Select the course"),
+  });
+
   const handelSubmit = (event) => {
     event.preventDefault();
     const formData = new FormData(event.target);
-    console.log(formData.get("avatar"));
+    const data = {};
+    formData.forEach((value, key) => {
+      // console.log(key, value);
+      if (data.hasOwnProperty(key)) {
+        if (!Array.isArray(data[key])) {
+          data[key] = [data[key]];
+        }
+        data[key].push(value);
+        return;
+      }
+      data[key] = value;
+    });
+
+    // console.log(data);
+
+    formSchem
+      .validate(data, { abortEarly: false })
+      .then((validatedData) => {
+        console.log(validatedData);
+        fetch("http://localhost:3000/form", {
+          method: "POST",
+          body: formData,
+        });
+      })
+      .catch((err) => {
+        const errorMessage = err.inner.reduce((acc, current) => {
+          acc[current.path] = current.message;
+          return acc;
+        }, {});
+        console.log(errorMessage);
+      });
   };
   return (
     <form
@@ -18,7 +88,12 @@ function App() {
         <label htmlFor="name" className="text-right">
           User Name
         </label>
-        <input type="text" id="name" name="name" className="border px-4 py-1" />
+        <input
+          type="text"
+          id="name"
+          name="username"
+          className="border px-4 py-1"
+        />
       </div>
       <div className="space-x-4 contents">
         <label htmlFor="password" className="text-right">
