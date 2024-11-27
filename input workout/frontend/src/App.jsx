@@ -5,6 +5,29 @@ import * as Yup from "yup";
 function App() {
   const [image, setImage] = useState(null);
   const fileInputRef = useRef(null);
+  const [isVisited, setIsVisited] = useState(
+    generateInitialStateForInputFields
+  );
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  function generateInitialStateForInputFields() {
+    return {
+      avatar: false,
+      course: false,
+      designation: false,
+      gender: false,
+      password: false,
+      username: false,
+    };
+  }
+
+  const handleVisitedField = (event) => {
+    const { name } = event.target;
+    setIsVisited((prevState) => ({
+      ...prevState,
+      [name]: true,
+    }));
+  };
 
   const formSchem = Yup.object({
     username: Yup.string()
@@ -48,37 +71,41 @@ function App() {
     event.preventDefault();
     const formData = new FormData(event.target);
     const data = {};
+
     formData.forEach((value, key) => {
-      // console.log(key, value);
-      if (data.hasOwnProperty(key)) {
+      if (key === "course") {
         if (!Array.isArray(data[key])) {
-          data[key] = [data[key]];
+          data[key] = [value];
+        } else {
+          data[key].push(value);
         }
-        data[key].push(value);
         return;
       }
+
       data[key] = value;
     });
+  };
 
-    // console.log(data);
-
+  const handleError = (data) => {
     formSchem
       .validate(data, { abortEarly: false })
       .then((validatedData) => {
         console.log(validatedData);
-        fetch("http://localhost:3000/form", {
-          method: "POST",
-          body: formData,
-        });
+        // fetch("http://localhost:3000/form", {
+        //   method: "POST",
+        //   body: formData,
+        // });
       })
       .catch((err) => {
         const errorMessage = err.inner.reduce((acc, current) => {
           acc[current.path] = current.message;
           return acc;
         }, {});
+        setErrorMessage(errorMessage);
         console.log(errorMessage);
       });
   };
+
   return (
     <form
       className="grid grid-cols-[1fr_1fr] gap-4 p-10 max-w-[600px]"
@@ -93,6 +120,7 @@ function App() {
           id="name"
           name="username"
           className="border px-4 py-1"
+          onBlur={handleVisitedField}
         />
       </div>
       <div className="space-x-4 contents">
@@ -104,6 +132,7 @@ function App() {
           id="password"
           name="password"
           className="border px-4 py-1"
+          onBlur={handleVisitedField}
         />
       </div>
       <div className="space-x-4 contents">
@@ -117,8 +146,8 @@ function App() {
           ref={fileInputRef}
           onChange={(event) => {
             setImage(URL.createObjectURL(event.target.files[0]));
-            console.log(image);
           }}
+          onBlur={handleVisitedField}
         />
       </div>
 
@@ -133,7 +162,6 @@ function App() {
             <div
               className="absolute right-[1px] top-1 size-5 flex justify-center items-center pb-[5px] bg-slate-300 rounded-full cursor-pointer"
               onClick={() => {
-                console.log(fileInputRef.current.value);
                 fileInputRef.current.value = "";
                 setImage(null);
               }}
@@ -156,6 +184,7 @@ function App() {
             name="gender"
             value="male"
             className="cursor-pointer"
+            onBlur={handleVisitedField}
           />
           <label htmlFor="male" className="cursor-pointer">
             Male
@@ -167,6 +196,7 @@ function App() {
             name="gender"
             value="female"
             className="ml-3 cursor-pointer"
+            onBlur={handleVisitedField}
           />
           <label htmlFor="female" className="cursor-pointer">
             Female
@@ -184,6 +214,7 @@ function App() {
               value="mba"
               name="course"
               className={`appearance-none `}
+              onBlur={handleVisitedField}
             />
             <label
               htmlFor="mba"
@@ -200,6 +231,7 @@ function App() {
               value="bbm"
               name="course"
               className=" appearance-none "
+              onBlur={handleVisitedField}
             />
             <label htmlFor="bbm" className="cursor-pointer">
               BBM
@@ -213,6 +245,7 @@ function App() {
               value="bcom"
               name="course"
               className="appearance-none"
+              onBlur={handleVisitedField}
             />
             <label htmlFor="bcom" className="cursor-pointer">
               B.COM
@@ -223,7 +256,11 @@ function App() {
 
       <div className="space-x-4 contents">
         <label className="text-right"> Designation </label>
-        <select className="border px-4 py-1" name="designation">
+        <select
+          className="border px-4 py-1"
+          name="designation"
+          onBlur={handleVisitedField}
+        >
           <option value="">Select One</option>
           <option value="hr">HR</option>
           <option value="manager">Manager</option>
